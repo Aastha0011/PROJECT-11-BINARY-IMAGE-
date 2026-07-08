@@ -1,41 +1,53 @@
-import os
 import streamlit as st
-import tensorflow as tf
 import numpy as np
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
 from PIL import Image
 
-st.set_page_config(page_title="COVID-19 Detection", page_icon="🩻")
-
-st.title("🩻 COVID-19 Detection from Chest X-ray")
-
-# ------------------------
-# Debug Information
-# ------------------------
-st.write("Current Working Directory:")
-st.code(os.getcwd())
-
-st.write("Files in Current Directory:")
-st.write(os.listdir("."))
-
-# ------------------------
-# Locate model.keras
-# ------------------------
-MODEL_PATH = "PROJECT 12 DETECTION OF COVID/model.keras"
-
-if not os.path.exists(MODEL_PATH):
-    st.error(f"❌ Model file not found: {MODEL_PATH}")
-    st.stop()
-
-# ------------------------
+# -----------------------------
 # Load Model
-# ------------------------
+# -----------------------------
 @st.cache_resource
-def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
+def load_covid_model():
+    return load_model("model.keras")  # or model.h5 if using H5
 
-model = load_model()
+model = load_covid_model()
 
 IMG_SIZE = (299, 299)
+
+# -----------------------------
+# Prediction Function
+# -----------------------------
+def predict(img):
+    img = img.resize(IMG_SIZE)
+    img_array = image.img_to_array(img)
+    img_array = img_array / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    prediction = model.predict(img_array)
+
+    probability = float(prediction[0][0])
+
+    if probability > 0.5:
+        label = "COVID-19"
+        confidence = probability
+    else:
+        label = "NORMAL"
+        confidence = 1 - probability
+
+    return label, confidence
+
+# -----------------------------
+# Streamlit UI
+# -----------------------------
+st.set_page_config(
+    page_title="COVID-19 Detection",
+    page_icon="🩻",
+    layout="centered"
+)
+
+st.title("🩻 COVID-19 Detection from Chest X-ray")
+st.write("Upload a Chest X-ray image to predict whether it is COVID-19 or Normal.")
 
 uploaded_file = st.file_uploader(
     "Upload Chest X-ray Image",
@@ -44,18 +56,19 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+    img = Image.open(uploaded_file).convert("RGB")
 
-    img = image.resize(IMG_SIZE)
-    img = np.array(img, dtype=np.float32) / 255.0
-    img = np.expand_dims(img, axis=0)
+    st.image(img, caption="Uploaded Image", use_container_width=True)
 
-    prediction = model.predict(img)
+    if st.button("Predict"):
 
-    prob = float(prediction[0][0])
+        with st.spinner("Analyzing..."):
+            label, confidence = predict(img)
 
-    if prob > 0.5:
-        st.error(f"🦠 COVID-19 Detected\n\nConfidence: {prob*100:.2f}%")
-    else:
-        st.success(f"✅ Normal\n\nConfidence: {(1-prob)*100:.2f}%")
+        st.success(f"Prediction: {label}")
+        st.info(f"Confidence: {confidence*100:.2f}%")
+
+        if label == "COVID-19":
+            st.error("⚠️ COVID-19 detected.")
+        else:
+            st.success("✅ Normal Chest X-ray.")
