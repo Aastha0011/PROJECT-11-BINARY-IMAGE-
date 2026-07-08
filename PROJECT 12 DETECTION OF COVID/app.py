@@ -1,34 +1,42 @@
+import os
 import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# ----------------------------
-# Page Config
-# ----------------------------
-st.set_page_config(
-    page_title="COVID-19 Chest X-ray Detection",
-    page_icon="🩻",
-    layout="centered"
-)
+st.set_page_config(page_title="COVID-19 Detection", page_icon="🩻")
 
 st.title("🩻 COVID-19 Detection from Chest X-ray")
-st.write("Upload a Chest X-ray image to predict whether it is **COVID-19** or **Normal**.")
 
-# ----------------------------
+# ------------------------
+# Debug Information
+# ------------------------
+st.write("Current Working Directory:")
+st.code(os.getcwd())
+
+st.write("Files in Current Directory:")
+st.write(os.listdir("."))
+
+# ------------------------
+# Locate model.keras
+# ------------------------
+MODEL_PATH = "model.keras"
+
+if not os.path.exists(MODEL_PATH):
+    st.error(f"❌ Model file not found: {MODEL_PATH}")
+    st.stop()
+
+# ------------------------
 # Load Model
-# ----------------------------
+# ------------------------
 @st.cache_resource
-def load_my_model():
-    return tf.keras.models.load_model("model.keras")
+def load_model():
+    return tf.keras.models.load_model(MODEL_PATH)
 
-model = load_my_model()
+model = load_model()
 
 IMG_SIZE = (299, 299)
 
-# ----------------------------
-# Upload Image
-# ----------------------------
 uploaded_file = st.file_uploader(
     "Upload Chest X-ray Image",
     type=["jpg", "jpeg", "png"]
@@ -40,18 +48,14 @@ if uploaded_file is not None:
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
     img = image.resize(IMG_SIZE)
-    img = np.array(img) / 255.0
+    img = np.array(img, dtype=np.float32) / 255.0
     img = np.expand_dims(img, axis=0)
 
     prediction = model.predict(img)
 
-    probability = float(prediction[0][0])
+    prob = float(prediction[0][0])
 
-    st.subheader("Prediction")
-
-    if probability > 0.5:
-        st.error("🦠 COVID-19 Detected")
-        st.write(f"Confidence: **{probability*100:.2f}%**")
+    if prob > 0.5:
+        st.error(f"🦠 COVID-19 Detected\n\nConfidence: {prob*100:.2f}%")
     else:
-        st.success("✅ Normal")
-        st.write(f"Confidence: **{(1-probability)*100:.2f}%**")
+        st.success(f"✅ Normal\n\nConfidence: {(1-prob)*100:.2f}%")
