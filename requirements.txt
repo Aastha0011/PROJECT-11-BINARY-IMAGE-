@@ -2,4 +2,4 @@ streamlit
 tensorflow
 numpy
 Pillow
-h5py
+opencv-python-headless
