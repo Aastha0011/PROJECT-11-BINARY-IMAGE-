@@ -20,7 +20,7 @@ st.write("Upload a Chest X-ray image to predict whether it is **COVID-19** or **
 # ----------------------------
 @st.cache_resource
 def load_my_model():
-    return tf.keras.models.load_model("PROJECT 12 DETECTION OF COVID/model.keras")
+    return tf.keras.models.load_model("model.keras")
 
 model = load_my_model()
 
