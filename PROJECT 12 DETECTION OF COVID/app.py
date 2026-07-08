@@ -20,7 +20,7 @@ st.write(os.listdir("."))
 # ------------------------
 # Locate model.keras
 # ------------------------
-MODEL_PATH = "model.keras"
+MODEL_PATH = "PROJECT 12 DETECTION OF COVID/model.keras"
 
 if not os.path.exists(MODEL_PATH):
     st.error(f"❌ Model file not found: {MODEL_PATH}")
