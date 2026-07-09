@@ -1,74 +1,46 @@
 import streamlit as st
+import tensorflow as tf
 import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 from PIL import Image
 
-# -----------------------------
-# Load Model
-# -----------------------------
+st.set_page_config(page_title="Binary Image Classifier", page_icon="🖼️")
+
+st.title("🖼️ Binary Image Classification using CNN")
+st.write("Upload an image to classify it.")
+
+# Load model
 @st.cache_resource
-def load_covid_model():
-    return load_model("model.keras")  # or model.h5 if using H5
+def load_model():
+    return tf.keras.models.load_model("binary_image_classifier.keras")
 
-model = load_covid_model()
+model = load_model()
 
-IMG_SIZE = (299, 299)
-
-# -----------------------------
-# Prediction Function
-# -----------------------------
-def predict(img):
-    img = img.resize(IMG_SIZE)
-    img_array = image.img_to_array(img)
-    img_array = img_array / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-
-    prediction = model.predict(img_array)
-
-    probability = float(prediction[0][0])
-
-    if probability > 0.5:
-        label = "COVID-19"
-        confidence = probability
-    else:
-        label = "NORMAL"
-        confidence = 1 - probability
-
-    return label, confidence
-
-# -----------------------------
-# Streamlit UI
-# -----------------------------
-st.set_page_config(
-    page_title="COVID-19 Detection",
-    page_icon="🩻",
-    layout="centered"
-)
-
-st.title("🩻 COVID-19 Detection from Chest X-ray")
-st.write("Upload a Chest X-ray image to predict whether it is COVID-19 or Normal.")
+IMG_SIZE = (150, 150)   # Change if your model was trained on another size
 
 uploaded_file = st.file_uploader(
-    "Upload Chest X-ray Image",
+    "Upload an Image",
     type=["jpg", "jpeg", "png"]
 )
 
 if uploaded_file is not None:
 
-    img = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(uploaded_file).convert("RGB")
 
-    st.image(img, caption="Uploaded Image", use_container_width=True)
+    st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    if st.button("Predict"):
+    img = image.resize(IMG_SIZE)
 
-        with st.spinner("Analyzing..."):
-            label, confidence = predict(img)
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-        st.success(f"Prediction: {label}")
-        st.info(f"Confidence: {confidence*100:.2f}%")
+    prediction = model.predict(img_array)[0][0]
 
-        if label == "COVID-19":
-            st.error("⚠️ COVID-19 detected.")
-        else:
-            st.success("✅ Normal Chest X-ray.")
+    st.subheader("Prediction")
+
+    # Binary Classification
+    if prediction > 0.5:
+        st.success(f"Class 1 ({prediction:.2%})")
+    else:
+        st.success(f"Class 0 ({1-prediction:.2%})")
+
+    st.write(f"Raw Prediction Score: **{prediction:.4f}**")
